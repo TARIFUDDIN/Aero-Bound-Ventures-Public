@@ -1,0 +1,20 @@
+.venv
+__pycache__
+.vscode/
+.pytest_cache/
+.ruff_cache/
+.env
+postgres_data/
+
+# Terraform
+terraform/.terraform
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/terraform.tfvars.json
+
+# AI Agent
+.github/copilot-instructions.md
+
+# Logs
+backend.log
