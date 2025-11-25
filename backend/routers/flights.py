@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query, Depends, Path
+import logging
+from fastapi import APIRouter, HTTPException, Query, Depends, Path, Request
 from external_services.flight import amadeus_flight_service
 from schemas.flights import (
     FlightSearchResponse,
@@ -23,7 +24,10 @@ from schemas.locations import (
 from models.bookings import Booking
 from crud.database import get_session
 from sqlmodel import Session, select
+import json
 
+# Setup logger
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -32,22 +36,35 @@ router = APIRouter()
 async def search_flights(request: FlightSearchRequestPost):
     """
     Search for flights using the Amadeus Flight Search API
-
-    This endpoint accepts a validated flight search request and returns available flight offers
-    from the Amadeus API. The request is validated using Pydantic models.
     """
     try:
         request_body = request.model_dump()
 
-        # TO DO: Search in cache first (REDIS)
-
+        # Make API call
         response = amadeus_flight_service.search_flights(request_body)
         return response
 
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ClientError as e:
+        # Print FULL Amadeus response body for debugging
+        try:
+            print("🔥 Amadeus ClientError:")
+            print("Status:", e.response.status_code if hasattr(e.response, "status_code") else "N/A")
+            print("Body:", e.response.body if hasattr(e.response, "body") else "No body")
+        except:
+            pass
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Amadeus API error: {e.response.body if hasattr(e.response, 'body') else str(e)}"
+        )
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Flight search failed: {str(e)}")
+        # Also print any unknown error
+        logger.exception("🔥 Unexpected flight search error")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Flight search failed: {str(e)}"
+        )
 
 
 @router.get("/shopping/flight-offers")
@@ -152,10 +169,21 @@ async def flight_order(
 
 @router.get("/shopping/seatmaps")
 async def view_seat_map_get(flightorderId: Annotated[str, Query()]):
-    response = amadeus_flight_service.view_seat_map(flightorderId=flightorderId)
-    return response
+    try:
+        # ✅ GOOD (Add the _get)
+        response = amadeus_flight_service.view_seat_map_get(flightorderId=flightorderId)
+        return response
 
+    except ClientError as e:
+        # This prevents the "Internal Server Error" crash
+        error_message = "Seat map not available for this flight"
+        if hasattr(e, "response") and hasattr(e.response, "body"):
+             error_message = e.response.body
+        raise HTTPException(status_code=400, detail=str(error_message))
 
+    except Exception as e:
+        logger.exception("Unexpected error in seatmap")
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 @router.post("/shopping/seatmaps")
 async def view_seat_map_post(request: FlightOffer):
     request_body = request.model_dump()
@@ -228,7 +256,6 @@ def _parse_amadeus_client_error(error: ClientError) -> str:
     Returns:
         str: User-friendly error message
     """
-    import json
 
     # Error code to message mapping
     ERROR_MESSAGES = {

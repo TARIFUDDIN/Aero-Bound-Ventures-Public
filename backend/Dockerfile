@@ -11,6 +11,9 @@ ENV PATH="/root/.local/bin:${PATH}"
 # Set working directory
 WORKDIR /app
 
+# 👇 ADD THIS LINE HERE
+ARG CACHEBUST=1
+
 # Copy project files
 COPY . .
 

@@ -1,7 +1,11 @@
 from pydantic import BaseModel, Field
 import enum
-from typing import Any
+from typing import Any, Optional, List
 
+
+# ============================================================
+# ENUMS
+# ============================================================
 
 class TravelerType(str, enum.Enum):
     ADULT = "ADULT"
@@ -16,106 +20,95 @@ class CabinType(str, enum.Enum):
     FIRST = "FIRST"
 
 
-# REQUEST MODELS
-# Define the nested Pydantic models first
-class DepartureDateTimeRange(BaseModel):
-    """
-    Model for the departure date and time range.
-    """
+# ============================================================
+# REQUEST MODELS - CLEAN & AMADEUS COMPLIANT
+# ============================================================
 
+class DepartureDateTimeRange(BaseModel):
     date: str
-    time: str = "00:00:00"
+    time: Optional[str] = None   # Amadeus allows only date
 
 
 class OriginDestination(BaseModel):
-    """
-    Model for a single leg of the journey.
-    """
-
     id: str
     originLocationCode: str
     destinationLocationCode: str
     departureDateTimeRange: DepartureDateTimeRange
 
 
-class AdditionalInformation(BaseModel):
-    """
-    Model for additional search information.
-    """
+class Traveler(BaseModel):
+    id: str
+    travelerType: TravelerType
+    associatedAdultId: Optional[str] = None
 
-    chargeableCheckedBags: bool
-    brandedFares: bool
-    fareRules: bool
+
+class AdditionalInformation(BaseModel):
+    chargeableCheckedBags: Optional[bool] = None
+    brandedFares: Optional[bool] = None
+    fareRules: Optional[bool] = None
 
 
 class PricingOptions(BaseModel):
-    """
-    Model for pricing-related search criteria.
-    """
-
-    includedCheckedBagsOnly: bool
+    includedCheckedBagsOnly: Optional[bool] = None
 
 
 class CarrierRestrictions(BaseModel):
-    blacklistedInEUAllowed: bool
-    includedCarrierCodes: list[str]
+    blacklistedInEUAllowed: Optional[bool] = None
+    includedCarrierCodes: Optional[List[str]] = None
 
 
 class CabinRestriction(BaseModel):
-    cabin: CabinType
-    coverage: str = "MOST_SEGMENTS"
-    originDestinationIds: list[str]
+    cabin: Optional[CabinType] = None
+    coverage: Optional[str] = "MOST_SEGMENTS"
+    originDestinationIds: Optional[List[str]] = None
 
 
 class ConnectionRestriction(BaseModel):
-    airportChangeAllowed: bool
-    technicalStopsAllowed: bool
+    airportChangeAllowed: Optional[bool] = None
+    technicalStopsAllowed: Optional[bool] = None
 
 
 class FlightFilters(BaseModel):
-    crossBorderAllowed: bool
-    moreOvernightsAllowed: bool
-    returnToDepartureAirport: bool
-    railSegmentAllowed: bool
-    busSegmentAllowed: bool
-    carrierRestrictions: CarrierRestrictions
-    cabinRestrictions: list[CabinRestriction]
-    connectionRestriction: ConnectionRestriction
+    crossBorderAllowed: Optional[bool] = None
+    moreOvernightsAllowed: Optional[bool] = None
+    returnToDepartureAirport: Optional[bool] = None
+    railSegmentAllowed: Optional[bool] = None
+    busSegmentAllowed: Optional[bool] = None
+    carrierRestrictions: Optional[CarrierRestrictions] = None
+    cabinRestrictions: Optional[List[CabinRestriction]] = None
+    connectionRestriction: Optional[ConnectionRestriction] = None
 
 
 class SearchCriteria(BaseModel):
-    excludeAllotments: bool
-    addOneWayOffers: bool
-    maxFlightOffers: int
-    allowAlternativeFareOptions: bool
-    oneFlightOfferPerDay: bool
-    additionalInformation: AdditionalInformation
-    pricingOptions: PricingOptions
-    flightFilters: FlightFilters
+    excludeAllotments: Optional[bool] = None
+    addOneWayOffers: Optional[bool] = None
+    maxFlightOffers: Optional[int] = 250
+    allowAlternativeFareOptions: Optional[bool] = None
+    oneFlightOfferPerDay: Optional[bool] = None
+    additionalInformation: Optional[AdditionalInformation] = None
+    pricingOptions: Optional[PricingOptions] = None
+    flightFilters: Optional[FlightFilters] = None
 
 
-# Nested Models
-class Itinerary(BaseModel):
-    duration: str
-    segments: list["Segment"]
+# ============================================================
+# REQUEST BODY ROOT
+# ============================================================
+
+class FlightSearchRequestPost(BaseModel):
+    currencyCode: str = "USD"
+    originDestinations: List[OriginDestination]
+    travelers: List[Traveler]
+    sources: List[str] = ["GDS"]
+    searchCriteria: Optional[SearchCriteria] = None
 
 
-class Segment(BaseModel):
-    departure: "Location"
-    arrival: "Location"
-    carrierCode: str
-    number: str
-    aircraft: "Aircraft"
-    operating: "Operating"
-    duration: str
-    id: str
-    numberOfStops: int
-    blacklistedInEU: bool
-
+# ============================================================
+# RESPONSE MODELS (UNCHANGED)
+# ============================================================
 
 class Location(BaseModel):
     iataCode: str
-    terminal: str
+    terminal: Optional[str] = None
     at: str
 
 
@@ -127,13 +120,22 @@ class Operating(BaseModel):
     carrierCode: str
 
 
-class Price(BaseModel):
-    currency: str
-    total: str
-    base: str
-    fees: list["Fee"]
-    grandTotal: str
-    additionalServices: list["AdditionalService"]
+class Segment(BaseModel):
+    departure: Location
+    arrival: Location
+    carrierCode: str
+    number: str
+    aircraft: Aircraft
+    operating: Operating
+    duration: str
+    id: str
+    numberOfStops: int
+    blacklistedInEU: Optional[bool] = None
+
+
+class Itinerary(BaseModel):
+    duration: str
+    segments: List[Segment]
 
 
 class Fee(BaseModel):
@@ -146,17 +148,45 @@ class AdditionalService(BaseModel):
     type: str
 
 
-class PricingOptions(BaseModel):
-    fareType: list[str]
-    includedCheckedBagsOnly: bool
+class Price(BaseModel):
+    currency: str
+    total: str
+    base: str
+    fees: Optional[List[Fee]] = None
+    grandTotal: str
+    additionalServices: Optional[List[AdditionalService]] = None
 
 
-class TravelerPricing(BaseModel):
-    travelerId: str
-    fareOption: str
-    travelerType: str
-    price: "TravelerPrice"
-    fareDetailsBySegment: list["FareDetailsBySegment"]
+class PricingOptionsResponse(BaseModel):
+    fareType: Optional[List[str]] = None
+    includedCheckedBagsOnly: Optional[bool] = None
+
+
+class Bags(BaseModel):
+    quantity: int
+
+
+class AmenityProvider(BaseModel):
+    name: str
+
+
+class Amenity(BaseModel):
+    description: str
+    isChargeable: bool
+    amenityType: str
+    amenityProvider: AmenityProvider
+
+
+class FareDetailsBySegment(BaseModel):
+    segmentId: str
+    cabin: str
+    fareBasis: str
+    brandedFare: Optional[str] = None
+    brandedFareLabel: Optional[str] = None
+    class_: str = Field(..., alias="class")
+    includedCheckedBags: Optional[Bags] = None
+    includedCabinBags: Optional[Bags] = None
+    amenities: Optional[List[Amenity]] = None
 
 
 class TravelerPrice(BaseModel):
@@ -165,133 +195,42 @@ class TravelerPrice(BaseModel):
     base: str
 
 
-class FareDetailsBySegment(BaseModel):
-    segmentId: str
-    cabin: str
-    fareBasis: str
-    brandedFare: str
-    brandedFareLabel: str
-    class_: str = Field(
-        ..., alias="class"
-    )  # Using Field and alias to handle 'class' keyword
-    includedCheckedBags: "Bags"
-    includedCabinBags: "Bags"
-    amenities: list["Amenity"]
+class TravelerPricing(BaseModel):
+    travelerId: str
+    fareOption: str
+    travelerType: str
+    price: TravelerPrice
+    fareDetailsBySegment: List[FareDetailsBySegment]
 
 
-class Bags(BaseModel):
-    quantity: int
-
-
-class Amenity(BaseModel):
-    description: str
-    isChargeable: bool
-    amenityType: str
-    amenityProvider: "AmenityProvider"
-
-
-class AmenityProvider(BaseModel):
-    name: str
-
-
-# Root Model
-class FlightOfferRequest(BaseModel):
-    type: str = "flight-offer"
-    id: str
-    source: str
-    instantTicketingRequired: bool
-    nonHomogeneous: bool
-    oneWay: bool
-    isUpsellOffer: bool
-    lastTicketingDate: str
-    lastTicketingDateTime: str
-    numberOfBookableSeats: int
-    itineraries: list[Itinerary]
-    price: Price
-    pricingOptions: PricingOptions
-    validatingAirlineCodes: list[str]
-    travelerPricings: list[TravelerPricing]
-
-
-class Phone(BaseModel):
-    """
-    Represents a phone number with device type, country code, and number.
-    """
-
-    deviceType: str
-    countryCallingCode: str
-    number: str
-
-
-# A Pydantic model for contact information
-class Contact(BaseModel):
-    """
-    Represents a person's contact information, including email and a list of phones.
-    """
-
-    emailAddress: str
-    phones: list[Phone]
-
-
-# A Pydantic model for a person's name
-class Name(BaseModel):
-    """
-    Represents a person's first and last name.
-    """
-
-    firstName: str
-    lastName: str
-
-
-# A Pydantic model for a travel document
-class Document(BaseModel):
-    """
-    Represents a travel document like a passport, including issuance and expiry details.
-    """
-
-    documentType: str
-    birthPlace: str
-    issuanceLocation: str
-    issuanceDate: str
-    number: str
-    expiryDate: str
-    issuanceCountry: str
-    validityCountry: str
-    nationality: str
-    holder: bool
-
-
-# RESPONSE MODELS
 class FlightOffer(BaseModel):
     type: str
     id: str
     source: str
-    instantTicketingRequired: bool
-    nonHomogeneous: bool
-    oneWay: bool
-    isUpsellOffer: bool
-    lastTicketingDate: str
-    lastTicketingDateTime: str
-    numberOfBookableSeats: int
-    itineraries: list[dict[str, Any]]
-    price: dict[str, Any]
-    pricingOptions: dict[str, Any]
-    validatingAirlineCodes: list[str]
-    travelerPricings: list[dict[str, Any]]
-
-    # Optional fields that may not always be present
-    totalPrice: str | None = None
-    totalPriceBase: str | None = None
-    fareType: str | None = None
+    instantTicketingRequired: Optional[bool] = None
+    nonHomogeneous: Optional[bool] = None
+    oneWay: Optional[bool] = None
+    isUpsellOffer: Optional[bool] = None
+    lastTicketingDate: Optional[str] = None
+    lastTicketingDateTime: Optional[str] = None
+    numberOfBookableSeats: Optional[int] = None
+    itineraries: Optional[List[Any]] = None
+    price: Optional[Any] = None
+    pricingOptions: Optional[Any] = None
+    validatingAirlineCodes: Optional[List[str]] = None
+    travelerPricings: Optional[List[Any]] = None
+    totalPrice: Optional[str] = None
+    totalPriceBase: Optional[str] = None
+    fareType: Optional[str] = None
 
 
 class FlightSearchResponse(BaseModel):
-    data: list[FlightOffer]
-    dictionaries: dict[str, Any] | None = None
-    meta: dict[str, Any] | None = None
+    data: List[FlightOffer]
+    dictionaries: Optional[dict[str, Any]] = None
+    meta: Optional[dict[str, Any]] = None
 
 
 class FlightPricingResponse(BaseModel):
-    data: dict[str, Any] | None = None
-    result: dict[str, Any] | None = None
-    meta: dict[str, Any] | None = None
+    data: Optional[dict[str, Any]] = None
+    result: Optional[dict[str, Any]] = None
+    meta: Optional[dict[str, Any]] = None

@@ -1,10 +1,9 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 
 
 class DepartureDateTimeRange(BaseModel):
     date: str
-    time: str
-
 
 class OriginDestination(BaseModel):
     id: str
@@ -16,55 +15,55 @@ class OriginDestination(BaseModel):
 class Traveler(BaseModel):
     id: str
     travelerType: str
-    associatedAdultId: str | None = None
+    associatedAdultId: Optional[str] = None
 
 
 class AdditionalInformation(BaseModel):
-    chargeableCheckedBags: bool
-    brandedFares: bool
-    fareRules: bool
+    chargeableCheckedBags: Optional[bool] = None
+    brandedFares: Optional[bool] = None
+    fareRules: Optional[bool] = None
 
 
 class PricingOptions(BaseModel):
-    includedCheckedBagsOnly: bool
+    includedCheckedBagsOnly: Optional[bool] = None
 
 
 class CarrierRestrictions(BaseModel):
-    blacklistedInEUAllowed: bool
-    includedCarrierCodes: list[str]
+    blacklistedInEUAllowed: Optional[bool] = None
+    includedCarrierCodes: Optional[list[str]] = None
 
 
 class CabinRestriction(BaseModel):
-    cabin: str
-    coverage: str
-    originDestinationIds: list[str]
+    cabin: Optional[str] = None
+    coverage: str = "MOST_SEGMENTS"
+    originDestinationIds: Optional[list[str]] = None
 
 
 class ConnectionRestriction(BaseModel):
-    airportChangeAllowed: bool
-    technicalStopsAllowed: bool
+    airportChangeAllowed: Optional[bool] = None
+    technicalStopsAllowed: Optional[bool] = None
 
 
 class FlightFilters(BaseModel):
-    crossBorderAllowed: bool
-    moreOvernightsAllowed: bool
-    returnToDepartureAirport: bool
-    railSegmentAllowed: bool
-    busSegmentAllowed: bool
-    carrierRestrictions: CarrierRestrictions
-    cabinRestrictions: list[CabinRestriction]
-    connectionRestriction: ConnectionRestriction
+    crossBorderAllowed: Optional[bool] = None
+    moreOvernightsAllowed: Optional[bool] = None
+    returnToDepartureAirport: Optional[bool] = None
+    railSegmentAllowed: Optional[bool] = None
+    busSegmentAllowed: Optional[bool] = None
+    carrierRestrictions: Optional[CarrierRestrictions] = None
+    cabinRestrictions: Optional[list[CabinRestriction]] = None
+    connectionRestriction: Optional[ConnectionRestriction] = None
 
 
 class SearchCriteria(BaseModel):
-    excludeAllotments: bool
-    addOneWayOffers: bool
-    maxFlightOffers: int
-    allowAlternativeFareOptions: bool
-    oneFlightOfferPerDay: bool
-    additionalInformation: AdditionalInformation
-    pricingOptions: PricingOptions
-    flightFilters: FlightFilters
+    excludeAllotments: Optional[bool] = None
+    addOneWayOffers: Optional[bool] = None
+    maxFlightOffers: Optional[int] = 5
+    allowAlternativeFareOptions: Optional[bool] = None
+    oneFlightOfferPerDay: Optional[bool] = None
+    additionalInformation: Optional[AdditionalInformation] = None
+    pricingOptions: Optional[PricingOptions] = None
+    flightFilters: Optional[FlightFilters] = None
 
 
 class FlightSearchRequestPost(BaseModel):
@@ -72,7 +71,7 @@ class FlightSearchRequestPost(BaseModel):
     originDestinations: list[OriginDestination]
     travelers: list[Traveler]
     sources: list[str]
-    searchCriteria: SearchCriteria
+    searchCriteria: Optional[SearchCriteria] = None
 
 
 class FlightSearchRequestGet(BaseModel):
@@ -81,12 +80,12 @@ class FlightSearchRequestGet(BaseModel):
     departureDate: str
     adults: int = Field(default=1)
     max: int = Field(default=5)
-    returnDate: str | None = None
-    children: int | None = None
-    infants: int | None = None
-    travelClass: str | None = None
-    includedAirlineCodes: str | None = None
-    excludedAirlineCodes: str | None = None
-    nonStop: bool | None = None
+    returnDate: Optional[str] = None
+    children: Optional[int] = None
+    infants: Optional[int] = None
+    travelClass: Optional[str] = None
+    includedAirlineCodes: Optional[str] = None
+    excludedAirlineCodes: Optional[str] = None
+    nonStop: Optional[bool] = None
     currencyCode: str = Field(default="USD")
-    maxPrice: int | None = None
+    maxPrice: Optional[int] = None

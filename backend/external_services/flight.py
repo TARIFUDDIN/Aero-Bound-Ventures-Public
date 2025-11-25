@@ -1,8 +1,8 @@
 import os
-from amadeus import Client, ResponseError
-from dotenv import load_dotenv
+import json
 import requests
-from amadeus import Location
+from amadeus import Client, ResponseError, Location
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -50,19 +50,51 @@ class AmadeusFlightService:
             raise e
 
     def search_flights(self, request_body: dict) -> dict:
+        """
+        Search for flight offers using Amadeus POST endpoint.
+        """
         try:
-            response = self.amadeus.shopping.flight_offers_search.post(request_body)
-            return response
+            print("=" * 80)
+            print("FLIGHT SEARCH REQUEST:")
+            print(json.dumps(request_body, indent=2))
+            print("=" * 80)
+
+            # Amadeus requires: { "data": { ... } }
+            payload = {"data": request_body}
+
+            response = self.amadeus.shopping.flight_offers_search.post(payload)
+
+            print("FLIGHT SEARCH RESPONSE STATUS: SUCCESS")
+            print(f"Number of offers found: {len(response.data)}")
+            print("=" * 80)
+
+            return response.data
 
         except ResponseError as api_error:
-            raise Exception(f"{api_error}")
+            print("=" * 80)
+            print("AMADEUS API ERROR:")
+
+            if hasattr(api_error, 'response'):
+                print(f"Status Code: {api_error.response.status_code}")
+                print(f"Response Body: {api_error.response.body}")
+
+            print("=" * 80)
+
+            status_code = api_error.response.status_code if hasattr(api_error, 'response') else 400
+            raise Exception(f"[{status_code}]")
 
     def confirm_price(self, request_body: dict):
+        """
+        Confirm flight pricing using Amadeus pricing endpoint.
+        """
         try:
             response = self.amadeus.shopping.flight_offers.pricing.post(request_body)
-            return response
+            return response.data
 
         except ResponseError as error:
+            print(f"Price confirmation error: {error}")
+            if hasattr(error, 'response'):
+                print(f"Response body: {error.response.body}")
             raise error
 
     def create_flight_order(self, request_body: dict):
@@ -96,15 +128,24 @@ class AmadeusFlightService:
             raise error
 
     def search_flights_get(self, request_body: dict) -> dict:
+        """
+        Search for flights using GET method (simpler parameters).
+        """
         try:
             response = self.amadeus.shopping.flight_offers_search.get(
                 **request_body
             ).data
             return response
         except ResponseError as error:
+            print(f"Flight search GET error: {error}")
+            if hasattr(error, 'response'):
+                print(f"Response body: {error.response.body}")
             raise error
 
     def view_seat_map_get(self, flightorderId: str) -> dict:
+        """
+        View seat map for a flight order.
+        """
         try:
             response = self.amadeus.shopping.seatmaps.get(
                 flightOrderId=flightorderId
@@ -114,6 +155,9 @@ class AmadeusFlightService:
             raise error
 
     def view_seat_map_post(self, flight_offer: dict) -> dict:
+        """
+        View seat map for a flight offer.
+        """
         try:
             body = {"data": [flight_offer]}
             response = self.amadeus.shopping.seatmaps.post(body).data
@@ -154,6 +198,9 @@ class AmadeusFlightService:
             raise error
 
     def airport_city_search(self, request_body: dict) -> dict:
+        """
+        Search for airports and cities.
+        """
         try:
             keyword = request_body.get("keyword")
             sub_type = request_body.get("sub_type", "ANY")
@@ -172,10 +219,10 @@ class AmadeusFlightService:
             raise error
 
     def get_flight_orders(self, flight_order_ids: list[str]):
+        """
+        Retrieve multiple flight orders based on their ids.
+        """
         try:
-            """
-             Retrieve multiple flight orders based on their ids
-            """
             flight_orders = []
             for order_id in flight_order_ids:
                 response = self.amadeus.booking.flight_order(order_id).get()
