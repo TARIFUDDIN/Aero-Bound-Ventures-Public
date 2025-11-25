@@ -17,4 +17,4 @@ terraform/terraform.tfvars.json
 .github/copilot-instructions.md
 
 # Logs
-backend.log
+backend.log"*.exe" 
