@@ -26,7 +26,7 @@ variable "mail_username" {
   type      = string
   sensitive = true
 }
-
+# triggering build
 variable "mail_password" {
   type      = string
   sensitive = true
