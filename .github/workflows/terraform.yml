@@ -1,49 +1,53 @@
-name: "Terraform CI/CD"
+name: "Deploy Infrastructure"
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'  # Only run if terraform files change
+
+permissions:
+  contents: read
 
 jobs:
-    deploy-infrastructure:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v2
-            - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v1
-              with:
-                    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                    aws-region: ${{  secrets.AWS_REGION }}
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v1
-            - name: Terraform Init
-              run: terraform -chdir=terraform init
-            - name: Terraform Validate
-              run: terraform -chdir=terraform validate
-            - name: Create Terraform tfvars file
-              run: |
-                cat <<EOF > terraform/terraform.tfvars
-                gh_pat              = "${{ secrets.GH_PAT }}"
-                repo_url            = "${{ github.repository }}"
-                mail_username       = "${{ secrets.MAIL_USERNAME }}"
-                mail_password       = "${{ secrets.MAIL_PASSWORD }}"
-                mail_from           = "${{ secrets.MAIL_FROM }}"
-                mail_port           = "${{ secrets.MAIL_PORT }}"
-                mail_server         = "${{ secrets.MAIL_SERVER }}"
-                access_token_expire_minutes = "${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}"
-                secret_key         = "${{ secrets.SECRET_KEY }}"
-                algorithm          = "${{ secrets.ALGORITHM }}"
-                amadeus_api_key     = "${{ secrets.AMADEUS_API_KEY }}"
-                amadeus_api_secret  = "${{ secrets.AMADEUS_API_SECRET }}"
-                amadeus_base_url   = "${{ secrets.AMADEUS_BASE_URL }}"
-                database_url     = "${{ secrets.DATABASE_URL }}"
-                EOF
-            - name: Terraform Plan
-              run: terraform -chdir=terraform plan -out=tfplan
-            - name: Terraform Apply
-              run: terraform -chdir=terraform apply -auto-approve tfplan
-            
+  deploy-infrastructure:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        # This tells GitHub to run all commands inside your 'terraform' folder
+        working-directory: ./terraform
 
+    steps:
+      # 1. Download your code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 2. Configure AWS (Using your US-EAST-2 region)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      # 3. Install Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.7
+
+      # 4. Inject the Master Secret File
+      # This takes your 'TF_VARS_FILE' secret and creates the real file on the runner
+      - name: Create terraform.tfvars
+        run: |
+          echo "${{ secrets.TF_VARS_FILE }}" > terraform.tfvars
+
+      # 5. Initialize (Connect to S3 Backend)
+      - name: Terraform Init
+        run: terraform init
+
+      # 6. Apply (Build/Update Server)
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
