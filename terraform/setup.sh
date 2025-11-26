@@ -15,13 +15,11 @@ systemctl enable docker
 
 # Clone the repository
 if [ -n "${repo_url}" ]; then
-  git clone "https://${gh_pat}@github.com/${repo_url}.git"
+  # Use the token to clone the private/public repo
+  git clone "https://${gh_pat}@github.com/TARIFUDDIN/Aero-Bound-Ventures-Public.git"
 
-  # Ensure correct folder name (matches your GitHub repo)
-  BACKEND_PATH="Aero-Bound-Ventures-Public/backend"
-
-  # Create the .env file in backend
-  cat <<EOF > ${BACKEND_PATH}/.env
+  # Create the .env file inside the CORRECT folder (Hardcoded 'backend')
+  cat <<EOF > Aero-Bound-Ventures-Public/backend/.env
 MAIL_USERNAME=${mail_username}
 MAIL_PASSWORD=${mail_password}
 MAIL_FROM=${mail_from}
@@ -33,9 +31,10 @@ ALGORITHM=${algorithm}
 AMADEUS_API_KEY=${amadeus_api_key}
 AMADEUS_API_SECRET=${amadeus_api_secret}
 AMADEUS_BASE_URL=${amadeus_base_url}
+DATABASE_URL=${database_url}
 EOF
 
-  # Run docker compose
-  cd ${BACKEND_PATH}
+  # Go to the CORRECT folder and start Docker (Hardcoded 'backend')
+  cd Aero-Bound-Ventures-Public/backend
   docker-compose up -d --build
 fi
