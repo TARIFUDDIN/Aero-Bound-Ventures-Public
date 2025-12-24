@@ -32,6 +32,10 @@ AMADEUS_API_KEY=${amadeus_api_key}
 AMADEUS_API_SECRET=${amadeus_api_secret}
 AMADEUS_BASE_URL=${amadeus_base_url}
 DATABASE_URL=${database_url}
+PESAPAL_CONSUMER_KEY=${pesapal_consumer_key}
+PESAPAL_CONSUMER_SECRET=${pesapal_consumer_secret}
+PESAPAL_BASE_URL=${pesapal_base_url}
+PESAPAL_IPN_ID=${pesapal_ipn_id}
 EOF
 
   # Go to the CORRECT folder and start Docker (Hardcoded 'backend')

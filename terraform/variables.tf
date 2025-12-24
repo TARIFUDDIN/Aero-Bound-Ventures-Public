@@ -26,7 +26,7 @@ variable "mail_username" {
   type      = string
   sensitive = true
 }
-# triggering 
+
 variable "mail_password" {
   type      = string
   sensitive = true
@@ -78,6 +78,26 @@ variable "amadeus_base_url" {
 }
 
 variable "database_url" {
+  type      = string
+  sensitive = true
+}
+
+variable "pesapal_consumer_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "pesapal_consumer_secret" {
+  type      = string
+  sensitive = true
+}
+
+variable "pesapal_base_url" {
+  type      = string
+  sensitive = true
+}
+
+variable "pesapal_ipn_id" {
   type      = string
   sensitive = true
 }
